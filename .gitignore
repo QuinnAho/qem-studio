@@ -39,9 +39,6 @@
 qem_shell.local.config
 qem_shell.user.config
 
-# Submission artifacts produced by scripts/build_submission.py
-/dist/
-
 # ImGui writes panel-layout state next to the exe at runtime
 imgui.ini
 

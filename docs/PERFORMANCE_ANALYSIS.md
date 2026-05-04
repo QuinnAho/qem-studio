@@ -54,12 +54,12 @@ Realistic speed-up after cache contention, reduction overhead, and thread-spin-u
 
 1. **Determinism regression.** The project's `DeterminismPolicy` declares `deterministic = true`. Parallel floating-point `+=` breaks bit-exact reproducibility, which breaks the CI golden-image comparison story documented in `CLAUDE.md` (SSIM >= 0.995 per-run). Preserving determinism requires per-thread partial buffers with a deterministic merge order - extra complexity for a marginal win.
 2. **Platform surface area.** On Windows/MSVC, `<execution>` works without TBB via ConcRT, but regressions here tend to be painful on specific machines.
-3. **Risk/reward at this stage.** Threading introduces race-condition risk shortly before the final submission for a ~10% total speed-up.
+3. **Risk/reward.** Threading introduces race-condition risk for a ~10% total speed-up — not worth the surface area.
 4. **The win is in the wrong place.** 82% of wall-clock is in the collapse loop; we would be optimizing the 18%.
 
 ### Conclusion
 
-**Parallel preprocessing is scoped out of the final submission.** The analysis itself is a useful result - it shows we profiled before optimizing and made an evidence-based call.
+**Parallel preprocessing is scoped out.** The analysis itself is the result — profiling drove the call, and the call was to walk away.
 
 ## Proposed speed-up: `std::map` -> `std::unordered_map` (attempted, reverted)
 

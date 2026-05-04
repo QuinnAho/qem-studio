@@ -1,107 +1,39 @@
 # QEM Studio
 
-A standalone desktop app for mesh simplification via Quadric Error Metrics
-with optional preservation of boundaries, sharp edges, and curved regions.
-Renders its own 3D viewport (GLFW + OpenGL + ImGui) and ships with all
-third-party dependencies vendored under `third_party/`.
+A desktop app for **3D mesh simplification** via Quadric Error Metrics, with feature-aware preservation of boundaries, sharp edges, and high-curvature regions. Rendered through [Glint3D](https://github.com/QuinnAho/Glint3D), my custom OpenGL engine.
 
-## Launch (dev workflow)
+![QEM Studio running on the Sponza scene](resources/media/HUD-Sponza.png)
 
-From the repo root, build and run in one step:
+## What it does
+
+Reduce a high-poly mesh to a target triangle count while keeping the geometry that defines its shape.
+
+- **Feature detection** — boundary loops, crease edges (angle threshold), and curvature hotspots, visualized live in the viewport.
+- **Preservation toggles** — independently weight boundaries, sharp edges, and curvature into the QEM cost.
+- **Compare view** — split viewport with a shared orbit camera for one-click before/after.
+- **Responsive UI** — simplification runs on a background thread; the viewport stays interactive.
+
+![Feature detection on cow.obj](resources/media/HUD-Cow.png)
+
+![Split-view A/B compare on bunny.obj — simplified left, original right](resources/media/HUD-Bunny-Split.png)
+
+## Architecture
+
+The simplifier is decoupled from the renderer. Core algorithms (`src/core`) sit behind a backend interface (`src/backends`); the ImGui front-end (`src/gui`) is a consumer, not a dependency. Swapping renderers or driving the simplifier headless is a matter of writing a new backend.
+
+**Stack:** C++ · CMake · [Glint3D](https://github.com/QuinnAho/Glint3D) · GLFW · Dear ImGui · Eigen · Python
+
+## Quick start
+
+Double-click `build-and-run.bat` (or run it from a terminal):
 
 ```bat
 build-and-run.bat release run
 ```
 
-This configures CMake if needed, builds the `glint_qem_studio_gui` target in
-Release, and launches the window. Submissions assembled by
-`scripts/build_submission.py` get a standalone double-click launcher
-(`launch-gui.bat`) generated into the submission folder itself.
+Open an `.obj`, pick a target percent, hit **Run Simplification**. Sample meshes (cow, bunny, Sponza) ship under `resources/models/` if you don't have your own.
 
-## Build manually
+## Engineering notes
 
-```
-cmake -S . -B builds/cmake
-cmake --build builds/cmake --config Release --target glint_qem_studio_gui
-```
-
-The resulting binary is `builds/cmake/Release/glint_qem_studio_gui.exe`.
-
-## Dev loop
-
-The `build-and-run.bat` helper wraps CMake for fast iteration:
-
-```bat
-build-and-run.bat release run       REM build + launch Release
-build-and-run.bat debug build       REM just build Debug
-build-and-run.bat clean             REM wipe the build dir
-```
-
-## Quick tour of the GUI
-
-When you open a mesh with `Open OBJ...`, the app auto-frames it and kicks off
-a feature analysis.
-
-- **Mesh**: file stats, display mode selector (Solid / Wireframe / Both).
-- **Feature Detection**: sliders for the sharp-edge angle threshold and the
-  top-N% curvature markers. Counts update live. Overlays render directly in
-  the viewport: boundaries in red, crease edges in orange, curvature
-  hotspots as yellow points.
-- **Simplification**: target percent, preservation toggles (boundary / sharp
-  / curvature), and an `Advanced tuning` tree for weights. The "Run
-  Simplification" button runs the simplifier on a background thread so the
-  viewport stays responsive.
-- **Results**: triangle/vertex counts before and after, collapse statistics,
-  elapsed time, and an OBJ export button.
-- **Compare**: enables a split viewport so you can see two meshes side by
-  side sharing a single orbit camera. Auto-populates the right pane with
-  your latest simplification result for one-click A/B.
-
-Mouse controls in the viewport: **left-drag** orbits, **right-drag** pans,
-**scroll** zooms.
-
-## Three-beat demo flow
-
-1. **cow.obj at 10% target** -- preservation clearly helps. Run with all
-   flags off, then all flags on; horns and hooves are visibly crisper with
-   preservation on.
-2. **bunny.obj at 10% target** -- preservation partially works. Useful to
-   show a known limitation of the curvature metric on dense meshes
-   (see `docs/PRESERVATION_OBSERVATIONS.md`).
-3. **sponza at 70% target** -- preservation is the difference between
-   a recognizable scene and a pile of triangles.
-
-## Producing a submission folder
-
-`scripts/build_submission.py` packages a self-contained folder suitable for
-handing to an evaluator. It copies the GUI source + the vendored third-party
-dependencies + the sample models into `dist/glint_qem_studio/`, emits a
-stripped-down CMakeLists, and verifies the result actually builds.
-
-```
-python scripts/build_submission.py
-python scripts/build_submission.py --no-verify
-python scripts/build_submission.py --out some/other/path
-```
-
-The generated folder is fully self-contained; all dependencies it needs are
-under its own `ThirdParty/`.
-
-## Documentation
-
-- `docs/PRESERVATION_OBSERVATIONS.md` -- when each preservation flag helps
-  vs. hurts, three-beat demo script, known limitations, proposed fixes.
-- `docs/PERFORMANCE_ANALYSIS.md` -- profiling baseline, parallelization
-  feasibility writeup, failed `std::map -> std::unordered_map` optimization
-  attempt (measured, reverted, documented).
-- `docs/BACKEND_INTERFACE_DISCUSSION.md` -- design rationale from the
-  earlier backend-interfaces iteration. Historical; the GUI no longer uses
-  that layering.
-- `Project Mid-Term Report.pdf` -- the mid-term submission.
-
-## Decomposition preview (legacy)
-
-Earlier iterations had a REPL shell that could render per-collapse frames and
-stitch them with ffmpeg. That workflow was removed; the equivalent
-capability is exposed in the GUI as the `Run Simplification` flow plus the
-`Compare` view.
+- **`docs/PERFORMANCE_ANALYSIS.md`** — a profiling-driven optimization (`std::map` → `std::unordered_map`) that benchmarked worse, was reverted, and is documented as a negative result.
+- **`docs/PRESERVATION_OBSERVATIONS.md`** — where preservation helps (cow, Sponza) versus where the curvature metric struggles (dense meshes like the Stanford bunny), with proposed fixes.

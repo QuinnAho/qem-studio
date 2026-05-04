@@ -353,8 +353,8 @@ void UploadOverlaysFromAnalysis(const CpuMesh& cpu,
 
 // Shader source lives in `resources/shaders/` next to the executable. We look in
 // a small list of candidate paths so the same build works both from the dev
-// tree (exe sits under `builds/.../Release/`) and the submission folder
-// (exe sits next to a `resources/` directory).
+// tree (exe sits under `builds/.../Release/`) and a packaged layout where the
+// exe sits next to a `resources/` directory.
 
 // Read an entire text file into a string. Returns empty on failure.
 std::string ReadFileToString(const std::string& path) {
@@ -370,7 +370,7 @@ std::string ReadFileToString(const std::string& path) {
 // the file contents or empty if none of the candidates existed.
 std::string LoadShaderSource(const std::string& filename) {
     const std::array<std::string, 6> candidate_roots = {
-        // 1) Next to the exe (submission layout).
+        // 1) Next to the exe (packaged layout).
         "resources/shaders/",
         // 2-5) Dev-tree layouts where the exe sits N folders deep inside
         //      builds/qem_simplifier/cmake/<Config>/ but is launched from
